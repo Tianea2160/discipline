@@ -3,6 +3,7 @@ package org.project.discipline.domain.user.service
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.project.discipline.security.service.JwtService
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -28,8 +29,8 @@ class UserContextService(
         }
         
         logger.debug("UserContextService: Principal 타입: ${authentication.principal?.javaClass?.simpleName}")
-        logger.debug("UserContextService: Principal 내용: ${authentication.principal}")
-        logger.debug("UserContextService: Authorities: ${authentication.authorities}")
+        logger.debug("UserContextService: Principal 내용: {}", authentication.principal)
+        logger.debug("UserContextService: Authorities: {}", authentication.authorities)
 
         return when (val principal = authentication.principal) {
             is OAuth2User -> {
@@ -205,12 +206,7 @@ class UserContextService(
         return attributes["sub"] as? String ?: ""
     }
 
-    private fun extractRoles(authentication: org.springframework.security.core.Authentication): List<String> {
+    private fun extractRoles(authentication: Authentication): List<String> {
         return authentication.authorities?.map { it.authority.removePrefix("ROLE_") } ?: listOf("USER")
-    }
-
-    fun requireCurrentUser(): CurrentUser {
-        return getCurrentUser() 
-            ?: throw IllegalStateException("사용자 인증 정보를 찾을 수 없습니다.")
     }
 }
