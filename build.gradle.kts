@@ -38,6 +38,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    
+    // hibernate envers for audit
+    implementation("org.springframework.data:spring-data-envers:4.0.0-M3")
 
     // spring ai
     implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M4")

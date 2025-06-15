@@ -1,6 +1,7 @@
 package org.project.discipline.domain.checklist.entity
 
 import jakarta.persistence.*
+import org.hibernate.envers.Audited
 import org.project.discipline.domain.common.entity.BaseAuditEntity
 import java.time.Duration
 import java.time.LocalDate
@@ -9,9 +10,12 @@ import java.time.LocalDateTime
 /**
  * 체크리스트 통합 엔티티
  * 요청과 응답을 하나의 테이블로 관리하며 최소한의 정보만 저장합니다.
+ * 
+ * @Audited 어노테이션으로 모든 변경 사항이 자동으로 audit 테이블에 기록됩니다.
  */
 @Entity
 @Table(name = "checklists")
+@Audited
 class ChecklistEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
