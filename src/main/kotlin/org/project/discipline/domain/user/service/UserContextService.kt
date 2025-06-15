@@ -19,44 +19,35 @@ class UserContextService(
 
     fun getCurrentUser(): CurrentUser? {
         logger.debug("=== UserContextService: getCurrentUser 시작 ===")
-        
+
         val authentication = SecurityContextHolder.getContext().authentication
         logger.debug("UserContextService: Authentication 객체: {}", authentication)
-        
+
         if (authentication == null) {
             logger.warn("UserContextService: Authentication이 null입니다.")
             return null
         }
-        
+
         logger.debug("UserContextService: Principal 타입: ${authentication.principal?.javaClass?.simpleName}")
         logger.debug("UserContextService: Principal 내용: {}", authentication.principal)
         logger.debug("UserContextService: Authorities: {}", authentication.authorities)
 
         return when (val principal = authentication.principal) {
             is OAuth2User -> {
-                logger.debug("UserContextService: OAuth2User 처리 시작")
                 val attributes = principal.attributes
-                logger.debug("UserContextService: OAuth2 attributes: {}", attributes)
-                
                 val provider = determineProvider(attributes)
-                logger.debug("UserContextService: 감지된 provider: $provider")
-                
+
                 val email = extractEmail(attributes, provider)
                 val name = extractName(attributes, provider)
                 val providerId = extractProviderId(attributes, provider)
                 val userId = extractUserId(attributes, provider)
                 val roles = extractRoles(authentication)
-                
-                logger.debug("UserContextService: 추출된 정보 - email: '$email', name: '$name', providerId: '$providerId', userId: $userId, roles: $roles")
-                
-                // 안전한 값 보장
+
                 val safeEmail = email.takeIf { it.isNotEmpty() } ?: "unknown@example.com"
                 val safeName = name.takeIf { it.isNotEmpty() } ?: "Unknown User"
                 val safeProvider = provider.takeIf { it.isNotEmpty() } ?: "unknown"
                 val safeProviderId = providerId.takeIf { it.isNotEmpty() } ?: "unknown"
-                
-                logger.debug("UserContextService: OAuth2 안전한 값들 - email: '$safeEmail', name: '$safeName', provider: '$safeProvider', providerId: '$safeProviderId'")
-                
+
                 val currentUser = CurrentUser(
                     id = userId,
                     email = safeEmail,
@@ -65,40 +56,31 @@ class UserContextService(
                     providerId = safeProviderId,
                     roles = roles
                 )
-                logger.debug("UserContextService: OAuth2User에서 생성된 CurrentUser: $currentUser")
                 currentUser
             }
+
             is UserDetails -> {
-                logger.debug("UserContextService: UserDetails 처리 시작")
-                logger.debug("UserContextService: UserDetails username: '${principal.username}'")
-                logger.debug("UserContextService: UserDetails authorities: ${principal.authorities}")
-                
                 // JWT 인증을 통한 사용자 - JWT 토큰에서 추가 정보 추출
                 val jwtToken = extractJwtTokenFromRequest()
-                logger.debug("UserContextService: 추출된 JWT 토큰: ${jwtToken?.take(50)}...")
-                
+
                 if (jwtToken != null) {
                     try {
                         val claims = jwtService.extractAllClaims(jwtToken)
-                        logger.debug("UserContextService: JWT Claims: $claims")
-                        
+
                         val email = claims.subject?.takeIf { it.isNotEmpty() } ?: principal.username
                         val name = (claims["name"] as? String)?.takeIf { it.isNotEmpty() } ?: principal.username
                         val provider = (claims["provider"] as? String)?.takeIf { it.isNotEmpty() } ?: "jwt"
-                        val providerId = (claims["providerId"] as? String)?.takeIf { it.isNotEmpty() } ?: principal.username
+                        val providerId =
+                            (claims["providerId"] as? String)?.takeIf { it.isNotEmpty() } ?: principal.username
                         val userId = generateIdFromEmail(email)
                         val roles = principal.authorities.map { it.authority.removePrefix("ROLE_") }
-                        
-                        logger.debug("UserContextService: JWT에서 추출된 정보 - email: '$email', name: '$name', provider: '$provider', providerId: '$providerId', userId: $userId, roles: $roles")
-                        
+
                         // 안전한 값 보장
                         val safeEmail = email?.takeIf { it.isNotEmpty() } ?: "unknown@example.com"
                         val safeName = name?.takeIf { it.isNotEmpty() } ?: "Unknown User"
-                        val safeProvider = provider?.takeIf { it.isNotEmpty() } ?: "unknown"
+                        val safeProvider = provider.takeIf { it.isNotEmpty() } ?: "unknown"
                         val safeProviderId = providerId?.takeIf { it.isNotEmpty() } ?: "unknown"
-                        
-                        logger.debug("UserContextService: 안전한 값들 - email: '$safeEmail', name: '$safeName', provider: '$safeProvider', providerId: '$safeProviderId'")
-                        
+
                         val currentUser = CurrentUser(
                             id = userId,
                             email = safeEmail,
@@ -107,20 +89,16 @@ class UserContextService(
                             providerId = safeProviderId,
                             roles = roles
                         )
-                        logger.debug("UserContextService: JWT에서 생성된 CurrentUser: $currentUser")
                         currentUser
                     } catch (e: Exception) {
-                        logger.error("UserContextService: JWT 파싱 실패", e)
-                        // JWT 파싱 실패 시 기본 정보 사용
                         createDefaultCurrentUser(principal)
                     }
                 } else {
-                    logger.debug("UserContextService: JWT 토큰이 없어서 기본 정보 사용")
                     createDefaultCurrentUser(principal)
                 }
             }
+
             else -> {
-                logger.warn("UserContextService: 지원하지 않는 Principal 타입: ${principal?.javaClass}")
                 null
             }
         }
@@ -128,12 +106,12 @@ class UserContextService(
 
     private fun createDefaultCurrentUser(principal: UserDetails): CurrentUser {
         val email = if (principal.username.contains("@")) principal.username else "unknown@example.com"
-        
+
         // 안전한 값 보장
         val safeEmail = email.takeIf { it.isNotEmpty() } ?: "unknown@example.com"
         val safeName = principal.username.takeIf { it.isNotEmpty() } ?: "Unknown User"
         val safeProviderId = principal.username.takeIf { it.isNotEmpty() } ?: "unknown"
-        
+
         return CurrentUser(
             id = generateIdFromEmail(safeEmail),
             email = safeEmail,
@@ -166,13 +144,9 @@ class UserContextService(
     }
 
     private fun extractUserId(attributes: Map<String, Any>, provider: String): Long {
-        // 실제로는 데이터베이스에서 사용자 ID를 조회해야 합니다
-        // 여기서는 임시로 providerId의 해시값을 사용
         val providerId = extractProviderId(attributes, provider)
         val email = extractEmail(attributes, provider)
-        
-        // providerId가 있으면 그것을 사용하고, 없으면 이메일을 사용
-        val identifier = if (providerId.isNotEmpty()) providerId else email
+        val identifier = providerId.ifEmpty { email }
         return if (identifier.isNotEmpty()) {
             kotlin.math.abs(identifier.hashCode().toLong())
         } else {
@@ -198,6 +172,7 @@ class UserContextService(
                 val lastName = name?.get("lastName") as? String ?: ""
                 "$firstName $lastName".trim().takeIf { it.isNotEmpty() } ?: ""
             }
+
             else -> ""
         }
     }
