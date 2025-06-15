@@ -92,30 +92,6 @@ class ChecklistService(
     }
 
     /**
-     * 사용자별 체크리스트 조회
-     */
-    fun getUserChecklists(userId: String): List<ChecklistResponse> {
-        val entities = checklistRepository.findByUserIdOrderByCreatedAtDesc(userId, org.springframework.data.domain.Pageable.unpaged())
-        
-        return entities.content.mapNotNull { entity ->
-            if (entity.isCompleted() && entity.checklistJson != null) {
-                try {
-                    val items: List<ChecklistItem> = objectMapper.readValue(entity.checklistJson!!)
-                    ChecklistResponse(
-                        date = entity.targetDate,
-                        goal = entity.goal,
-                        items = items,
-                        estimatedTotalTime = calculateTotalTime(items)
-                    )
-                } catch (e: Exception) {
-                    logger.error("Failed to parse checklist JSON for entity ${entity.id}", e)
-                    null
-                }
-            } else null
-        }
-    }
-
-    /**
      * AI 프롬프트 생성
      */
     private fun createPrompt(request: ChecklistRequest, targetDate: LocalDate): String {
