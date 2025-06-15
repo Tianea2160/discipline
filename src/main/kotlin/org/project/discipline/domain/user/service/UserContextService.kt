@@ -2,7 +2,6 @@ package org.project.discipline.domain.user.service
 
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.project.discipline.security.service.JwtService
-import org.slf4j.LoggerFactory
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
@@ -15,22 +14,12 @@ import org.springframework.web.context.request.ServletRequestAttributes
 class UserContextService(
     private val jwtService: JwtService
 ) {
-    private val logger = LoggerFactory.getLogger(UserContextService::class.java)
-
     fun getCurrentUser(): CurrentUser? {
-        logger.debug("=== UserContextService: getCurrentUser 시작 ===")
-
         val authentication = SecurityContextHolder.getContext().authentication
-        logger.debug("UserContextService: Authentication 객체: {}", authentication)
 
         if (authentication == null) {
-            logger.warn("UserContextService: Authentication이 null입니다.")
             return null
         }
-
-        logger.debug("UserContextService: Principal 타입: ${authentication.principal?.javaClass?.simpleName}")
-        logger.debug("UserContextService: Principal 내용: {}", authentication.principal)
-        logger.debug("UserContextService: Authorities: {}", authentication.authorities)
 
         return when (val principal = authentication.principal) {
             is OAuth2User -> {
