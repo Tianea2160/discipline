@@ -1,6 +1,5 @@
 package org.project.discipline.config
 
-import org.project.discipline.domain.user.service.UserContextService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.domain.AuditorAware

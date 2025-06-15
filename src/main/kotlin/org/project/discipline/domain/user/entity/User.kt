@@ -1,12 +1,10 @@
 package org.project.discipline.domain.user.entity
 
 import jakarta.persistence.*
-import org.project.discipline.domain.common.entity.BaseAuditEntity
 import org.project.discipline.domain.common.entity.BaseTimeEntity
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
-import java.time.LocalDateTime
 
 @Entity
 @Table(name = "users")

@@ -7,7 +7,6 @@ import org.project.discipline.domain.checklist.dto.ChecklistRequest
 import org.project.discipline.domain.checklist.dto.ChecklistResponse
 import org.project.discipline.domain.checklist.dto.Priority
 import org.project.discipline.domain.checklist.entity.ChecklistEntity
-import org.project.discipline.domain.checklist.entity.ChecklistStatus
 import org.project.discipline.domain.checklist.repository.ChecklistRepository
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.slf4j.LoggerFactory
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.system.measureTimeMillis
 
 @Service
 @Transactional

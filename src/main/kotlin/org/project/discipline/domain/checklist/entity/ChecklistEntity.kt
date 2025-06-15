@@ -2,9 +2,9 @@ package org.project.discipline.domain.checklist.entity
 
 import jakarta.persistence.*
 import org.project.discipline.domain.common.entity.BaseAuditEntity
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.Duration
 
 /**
  * 체크리스트 통합 엔티티
