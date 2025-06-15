@@ -55,36 +55,36 @@ class GlobalExceptionHandler(
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse)
     }
 
-    @ExceptionHandler(ChecklistGenerationException::class)
-    fun handleChecklistGenerationException(
-        ex: ChecklistGenerationException,
+    @ExceptionHandler(RecommendCheckListGenerationException::class)
+    fun handleRecommendCheckListGenerationException(
+        ex: RecommendCheckListGenerationException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        logger.error("Checklist generation failed: {}", ex.message, ex)
+        logger.error("Recommend check list generation failed: {}", ex.message, ex)
 
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            error = "Checklist Generation Error",
-            message = "체크리스트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            error = "Recommend Check List Generation Error",
+            message = "추천 체크리스트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
             path = request.requestURI
         )
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse)
     }
 
-    @ExceptionHandler(InvalidChecklistFormatException::class)
-    fun handleInvalidChecklistFormatException(
-        ex: InvalidChecklistFormatException,
+    @ExceptionHandler(InvalidRecommendCheckListFormatException::class)
+    fun handleInvalidRecommendCheckListFormatException(
+        ex: InvalidRecommendCheckListFormatException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        logger.warn("Invalid checklist format: {}", ex.message, ex)
+        logger.warn("Invalid recommend check list format: {}", ex.message, ex)
 
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.BAD_REQUEST.value(),
             error = "Invalid Format",
-            message = "체크리스트 형식이 올바르지 않습니다.",
+            message = "추천 체크리스트 형식이 올바르지 않습니다.",
             path = request.requestURI
         )
 

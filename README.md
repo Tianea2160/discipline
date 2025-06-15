@@ -93,17 +93,17 @@ src/main/kotlin/org/project/discipline/
 │   └── WebConfig.kt           # 웹 설정
 ├── 📁 controller/              # REST 컨트롤러
 │   ├── AuthController.kt      # 인증 관련 API
-│   ├── ChecklistController.kt # 체크리스트 API (인증 필요)
-│   ├── TestChecklistController.kt # 테스트 API (인증 불필요)
+│   ├── RecommendCheckListController.kt # 체크리스트 API (인증 필요)
+│   ├── TestRecommendCheckListController.kt # 테스트 API (인증 불필요)
 │   └── UserController.kt      # 사용자 관리 API
 ├── 📁 domain/                  # 도메인 모델
 │   ├── 📁 checklist/          # 체크리스트 도메인
 │   │   ├── 📁 dto/            # 데이터 전송 객체
-│   │   │   ├── ChecklistItem.kt
-│   │   │   ├── ChecklistRequest.kt
-│   │   │   └── ChecklistResponse.kt
+│   │   │   ├── RecommendCheckListItem.kt
+│   │   │   ├── RecommendCheckListRequest.kt
+│   │   │   └── RecommendCheckListResponse.kt
 │   │   ├── 📁 entity/         # JPA 엔티티
-│   │   │   └── ChecklistEntity.kt
+│   │   │   └── RecommendCheckListEntity.kt
 │   │   ├── 📁 repository/     # 데이터 접근 계층
 │   │   │   └── ChecklistRepository.kt
 │   │   └── 📁 service/        # 비즈니스 로직
@@ -344,9 +344,9 @@ CREATE TABLE users (
 );
 ```
 
-#### checklists (체크리스트)
+#### recommend_check_lists (체크리스트)
 ```sql
-CREATE TABLE checklists (
+CREATE TABLE recommend_check_lists (
     id BIGSERIAL PRIMARY KEY,
     user_id VARCHAR(255),
     target_date DATE NOT NULL,
@@ -364,7 +364,7 @@ CREATE TABLE checklists (
 ```
 
 ### 엔티티 관계
-- **User** ↔ **ChecklistEntity**: 1:N 관계
+- **User** ↔ **RecommendCheckListEntity**: 1:N 관계
 - **BaseAuditEntity**: 생성/수정 정보 자동 관리
 - **BaseTimeEntity**: 시간 정보 자동 관리
 

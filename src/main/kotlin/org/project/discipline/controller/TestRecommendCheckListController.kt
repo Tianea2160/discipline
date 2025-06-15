@@ -5,9 +5,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.project.discipline.domain.checklist.dto.ChecklistRequest
-import org.project.discipline.domain.checklist.dto.ChecklistResponse
-import org.project.discipline.domain.checklist.service.ChecklistService
+import org.project.discipline.domain.checklist.dto.RecommendCheckListRequest
+import org.project.discipline.domain.checklist.dto.RecommendCheckListResponse
+import org.project.discipline.domain.checklist.service.RecommendCheckListService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -15,8 +15,8 @@ import java.time.LocalDate
 @RestController
 @RequestMapping("/test/checklist")
 @Tag(name = "체크리스트 테스트 API", description = "인증 없이 테스트할 수 있는 체크리스트 API")
-class TestChecklistController(
-    private val checklistService: ChecklistService
+class TestRecommendCheckListController(
+    private val checklistService: RecommendCheckListService
 ) {
 
     @PostMapping("/generate")
@@ -32,8 +32,8 @@ class TestChecklistController(
         ]
     )
     fun generateChecklist(
-        @Valid @RequestBody request: ChecklistRequest
-    ): ResponseEntity<ChecklistResponse> {
+        @Valid @RequestBody request: RecommendCheckListRequest
+    ): ResponseEntity<RecommendCheckListResponse> {
         val response = checklistService.generateChecklist(
             request = request,
             currentUser = null // 테스트용이므로 null
@@ -52,8 +52,8 @@ class TestChecklistController(
             ApiResponse(responseCode = "500", description = "서버 내부 오류")
         ]
     )
-    fun generateSampleChecklist(): ResponseEntity<ChecklistResponse> {
-        val sampleRequest = ChecklistRequest(
+    fun generateSampleChecklist(): ResponseEntity<RecommendCheckListResponse> {
+        val sampleRequest = RecommendCheckListRequest(
             date = LocalDate.now(),
             goal = "오늘 하루 생산적으로 보내기"
         )
@@ -79,8 +79,8 @@ class TestChecklistController(
     )
     fun generateQuickChecklist(
         @RequestParam goal: String
-    ): ResponseEntity<ChecklistResponse> {
-        val request = ChecklistRequest(
+    ): ResponseEntity<RecommendCheckListResponse> {
+        val request = RecommendCheckListRequest(
             date = LocalDate.now(),
             goal = goal
         )

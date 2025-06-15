@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.project.discipline.annotation.CurrentUserInfo
-import org.project.discipline.domain.checklist.dto.ChecklistRequest
-import org.project.discipline.domain.checklist.dto.ChecklistResponse
-import org.project.discipline.domain.checklist.service.ChecklistService
+import org.project.discipline.domain.checklist.dto.RecommendCheckListRequest
+import org.project.discipline.domain.checklist.dto.RecommendCheckListResponse
+import org.project.discipline.domain.checklist.service.RecommendCheckListService
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -19,8 +19,8 @@ import java.time.LocalDate
 @RestController
 @RequestMapping("/api/checklist")
 @Tag(name = "체크리스트 API", description = "AI 기반 체크리스트 생성 및 관리 API")
-class ChecklistController(
-    private val checklistService: ChecklistService
+class RecommendCheckListController(
+    private val checklistService: RecommendCheckListService
 ) {
 
     @PostMapping("/generate")
@@ -38,9 +38,9 @@ class ChecklistController(
     )
     @SecurityRequirement(name = "Bearer Authentication")
     fun generateChecklist(
-        @Valid @RequestBody request: ChecklistRequest,
+        @Valid @RequestBody request: RecommendCheckListRequest,
         @Parameter(hidden = true) @CurrentUserInfo currentUser: CurrentUser?
-    ): ResponseEntity<ChecklistResponse> {
+    ): ResponseEntity<RecommendCheckListResponse> {
         val response = checklistService.generateChecklist(
             request = request,
             currentUser = currentUser
@@ -63,8 +63,8 @@ class ChecklistController(
     @SecurityRequirement(name = "Bearer Authentication")
     fun generateSampleChecklist(
         @Parameter(hidden = true) @CurrentUserInfo currentUser: CurrentUser?
-    ): ResponseEntity<ChecklistResponse> {
-        val sampleRequest = ChecklistRequest(
+    ): ResponseEntity<RecommendCheckListResponse> {
+        val sampleRequest = RecommendCheckListRequest(
             date = LocalDate.now(),
             goal = "오늘 하루 생산적으로 보내기"
         )
