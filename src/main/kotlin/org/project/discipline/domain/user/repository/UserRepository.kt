@@ -14,9 +14,4 @@ interface UserRepository : JpaRepository<User, Long> {
      * 같은 이메일이라도 다른 provider면 다른 계정으로 취급
      */
     fun findByEmailAndProvider(email: String, provider: String): User?
-    
-    /**
-     * 특정 이메일을 사용하는 모든 사용자 조회 (모든 provider 포함)
-     */
-    fun findAllByEmail(email: String): List<User>
-} 
+}

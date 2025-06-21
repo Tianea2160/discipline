@@ -15,7 +15,6 @@ import org.springframework.ai.chat.client.advisor.api.CallAroundAdvisor
 import org.springframework.ai.chat.client.advisor.api.CallAroundAdvisorChain
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.chat.prompt.PromptTemplate
-import org.springframework.ai.converter.BeanOutputConverter
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

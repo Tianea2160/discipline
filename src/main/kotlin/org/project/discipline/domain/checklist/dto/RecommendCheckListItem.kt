@@ -1,7 +1,5 @@
 package org.project.discipline.domain.checklist.dto
 
-import java.time.Duration
-
 data class RecommendCheckListItem(
     val task: String,
     val description: String,

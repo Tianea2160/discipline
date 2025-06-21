@@ -13,8 +13,10 @@ import org.project.discipline.domain.checklist.dto.RecommendCheckListResponse
 import org.project.discipline.domain.checklist.service.RecommendCheckListService
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
-import java.time.LocalDate
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/checklist")
