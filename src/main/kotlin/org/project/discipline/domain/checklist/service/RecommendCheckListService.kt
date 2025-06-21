@@ -15,6 +15,7 @@ import org.springframework.ai.chat.client.advisor.api.CallAroundAdvisor
 import org.springframework.ai.chat.client.advisor.api.CallAroundAdvisorChain
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.chat.prompt.PromptTemplate
+import org.springframework.ai.converter.BeanOutputConverter
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -45,7 +46,7 @@ class RecommendCheckListService(
             logger.info("🚀 AI REQUEST START")
             logger.info("📝 Prompt Messages: {}", advisedRequest.chatModel().toString())
             advisedRequest.userText().let { userText ->
-                logger.info("👤 User Message: {}", userText.take(500) + if (userText.length > 500) "..." else "")
+                logger.info("👤 User Message: {}", userText)
             }
 
             try {
@@ -141,7 +142,7 @@ class RecommendCheckListService(
         val prompt = createPromptObject(request, targetDate)
 
         // 2. 로깅 Advisor와 함께 ChatClient 호출
-        val items: List<RecommendCheckListItem>? = chatClient
+        val items = chatClient
             .prompt(prompt)
             .advisors(loggingAdvisor)  // 🔍 로깅 Advisor 추가
             .call()
@@ -170,7 +171,6 @@ class RecommendCheckListService(
     private fun createPromptObject(request: RecommendCheckListRequest, targetDate: LocalDate): Prompt {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")
 
-        // 비즈니스 로직만 포함한 깔끔한 프롬프트
         val templateText = """
             당신은 목표 달성을 위한 체크리스트 생성 전문가입니다.
             주어진 정보:
@@ -195,7 +195,7 @@ class RecommendCheckListService(
         // 템플릿 변수 설정
         val templateVars = mapOf(
             "date" to targetDate.format(dateFormatter),
-            "goal" to request.goal
+            "goal" to request.goal,
         )
 
         logger.debug("Creating prompt with variables: {}", templateVars.keys)
