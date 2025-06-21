@@ -7,20 +7,34 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    uniqueConstraints = [
+        // provider + email 조합은 유일해야 함 (같은 이메일, 같은 provider 중복 방지)
+        UniqueConstraint(
+            name = "uk_users_provider_email",
+            columnNames = ["provider", "email"]
+        )
+    ],
+    indexes = [
+        // 자주 사용되는 검색 조건들에 대한 인덱스
+        Index(name = "idx_users_email", columnList = "email"),
+        Index(name = "idx_users_provider", columnList = "provider")
+    ]
+)
 class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false, unique = true)
-    val email: String,
+    @Column(nullable = false)
+    var email: String,
 
     @Column(nullable = false)
-    val name: String,
+    var name: String,
 
     @Column
-    val picture: String? = null,
+    var picture: String? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -29,7 +43,7 @@ class User(
     @Column(nullable = false)
     val provider: String,
 
-    @Column(nullable = false)
+    @Column(name = "provider_id", nullable = false, unique = true)
     val providerId: String,
 ) : UserDetails, BaseTimeEntity() {
     override fun getAuthorities(): Collection<GrantedAuthority> =
@@ -37,6 +51,15 @@ class User(
 
     override fun getPassword(): String = ""
     override fun getUsername(): String = name
+    
+    /**
+     * OAuth 로그인 시 사용자 정보 업데이트
+     */
+    fun updateOAuthInfo(newEmail: String, newName: String, newPicture: String?) {
+        this.email = newEmail
+        this.name = newName
+        this.picture = newPicture
+    }
 }
 
 enum class UserRole {
