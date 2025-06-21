@@ -30,7 +30,7 @@ class SecurityConfig(
         .csrf { it.disable() }
         .authorizeHttpRequests { auth ->
             auth
-                .requestMatchers("/", "/login/**", "/oauth2/**").permitAll()
+                .requestMatchers("/", "/login/**", "/oauth2/**", "/api/auth/oauth-login").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers("/test/**").permitAll() // 테스트용 API는 인증 불필요
                 .requestMatchers("/actuator/health").permitAll()

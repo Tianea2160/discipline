@@ -73,6 +73,7 @@ dependencies {
 
     // swagger
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.31")
 }
 
 kotlin {
