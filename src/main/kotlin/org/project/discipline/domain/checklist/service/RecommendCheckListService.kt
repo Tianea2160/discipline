@@ -98,34 +98,21 @@ class RecommendCheckListService(
         savedEntity.start()
         checklistRepository.save(savedEntity)
 
-        try {
-            // 3. AI 생성 (Prompt 객체 사용)
-            val items = generateChecklistItemsWithAI(request, targetDate)
-            val response = RecommendCheckListResponse(
-                date = targetDate,
-                goal = request.goal,
-                items = items,
-                estimatedTotalTime = calculateTotalTime(items)
-            )
+        val items = generateChecklistItemsWithAI(request, targetDate)
+        val response = RecommendCheckListResponse(
+            date = targetDate,
+            goal = request.goal,
+            items = items,
+            estimatedTotalTime = calculateTotalTime(items)
+        )
 
-            // 4. 성공 처리
-            val checklistJson = objectMapper.writeValueAsString(items)
-            savedEntity.complete(checklistJson)
-            checklistRepository.save(savedEntity)
+        // 4. 성공 처리
+        val checklistJson = objectMapper.writeValueAsString(items)
+        savedEntity.complete(checklistJson)
+        checklistRepository.save(savedEntity)
 
-            logger.info("Checklist processing completed successfully: id=${savedEntity.id}")
-            return response
-
-        } catch (e: Exception) {
-            logger.error("Error generating checklist for user ${currentUser?.id}", e)
-
-            // 5. 실패 처리
-            savedEntity.fail(e.message ?: "Unknown error")
-            checklistRepository.save(savedEntity)
-
-            // 6. 예외를 다시 던져서 500 오류 반환
-            throw e
-        }
+        logger.info("Checklist processing completed successfully: id=${savedEntity.id}")
+        return response
     }
 
     /**
