@@ -1,19 +1,12 @@
 package org.project.discipline.domain.checklist.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import java.time.Duration
 
 data class RecommendCheckListItem(
-    @JsonProperty("task")
     val task: String,
-    
-    @JsonProperty("description")
-    val description: String? = null,
-    
-    @JsonProperty("priority")
+    val description: String,
     val priority: Priority = Priority.MEDIUM,
-    
-    @JsonProperty("estimatedTime")
-    val estimatedTime: String? = null
+    val estimatedDuration: Long
 )
 
 enum class Priority {

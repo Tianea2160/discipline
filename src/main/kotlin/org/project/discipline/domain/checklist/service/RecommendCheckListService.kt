@@ -1,16 +1,18 @@
 package org.project.discipline.domain.checklist.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.project.discipline.domain.checklist.dto.RecommendCheckListItem
 import org.project.discipline.domain.checklist.dto.RecommendCheckListRequest
 import org.project.discipline.domain.checklist.dto.RecommendCheckListResponse
-import org.project.discipline.domain.checklist.dto.Priority
 import org.project.discipline.domain.checklist.entity.RecommendCheckListEntity
 import org.project.discipline.domain.checklist.repository.RecommendCheckListRepository
 import org.project.discipline.domain.user.dto.CurrentUser
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.prompt.Prompt
+import org.springframework.ai.chat.prompt.PromptTemplate
+import org.springframework.ai.converter.BeanOutputConverter
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -32,9 +34,9 @@ class RecommendCheckListService(
         request: RecommendCheckListRequest,
         currentUser: CurrentUser?
     ): RecommendCheckListResponse {
-        // date가 null이면 현재 날짜 사용
-        val targetDate = request.date ?: LocalDate.now()
-        
+        // 항상 현재 날짜 사용
+        val targetDate = LocalDate.now()
+
         // 1. 엔티티 생성 및 저장
         val entity = RecommendCheckListEntity(
             userId = currentUser?.id?.toString(),
@@ -48,160 +50,115 @@ class RecommendCheckListService(
         savedEntity.start()
         checklistRepository.save(savedEntity)
 
-        var response: RecommendCheckListResponse
         try {
-            // 3. AI 생성
-            val prompt = createPrompt(request, targetDate)
-            logger.info("Generated prompt for user ${currentUser?.id}: $prompt")
-
-            val aiResponse = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content() ?: throw IllegalStateException("AI response is null")
-
-            logger.info("AI Response received: ${aiResponse.length} characters")
-
-            // 4. 응답 파싱
-            val items = parseAiResponse(aiResponse)
-            response = RecommendCheckListResponse(
+            // 3. AI 생성 (Prompt 객체 사용)
+            val items = generateChecklistItemsWithAI(request, targetDate)
+            val response = RecommendCheckListResponse(
                 date = targetDate,
                 goal = request.goal,
                 items = items,
                 estimatedTotalTime = calculateTotalTime(items)
             )
 
-            // 5. 성공 처리
+            // 4. 성공 처리
             val checklistJson = objectMapper.writeValueAsString(items)
             savedEntity.complete(checklistJson)
+            checklistRepository.save(savedEntity)
+
+            logger.info("Checklist processing completed successfully: id=${savedEntity.id}")
+            return response
 
         } catch (e: Exception) {
             logger.error("Error generating checklist for user ${currentUser?.id}", e)
-            
-            // 6. 실패 처리
+
+            // 5. 실패 처리
             savedEntity.fail(e.message ?: "Unknown error")
-            
-            // 7. 폴백 응답 생성
-            response = createFallbackChecklist(request, targetDate)
+            checklistRepository.save(savedEntity)
+
+            // 6. 예외를 다시 던져서 500 오류 반환
+            throw e
         }
-
-        // 8. 최종 저장
-        checklistRepository.save(savedEntity)
-        logger.info("Checklist processing completed: id=${savedEntity.id}, status=${savedEntity.status}")
-
-        return response
     }
 
     /**
-     * AI 프롬프트 생성
+     * Prompt 객체를 사용한 AI 체크리스트 생성
      */
-    private fun createPrompt(request: RecommendCheckListRequest, targetDate: LocalDate): String {
+    private fun generateChecklistItemsWithAI(
+        request: RecommendCheckListRequest,
+        targetDate: LocalDate
+    ): List<RecommendCheckListItem> {
+        logger.info("Using Prompt object with BeanOutputConverter for structured output generation")
+
+        // 1. Prompt 객체 생성
+        val prompt = createPromptObject(request, targetDate)
+        logger.info("Created prompt with ${prompt.instructions.size} instructions")
+
+        // 2. ChatClient에 Prompt 객체 전달하여 구조화된 응답 생성
+        val items: List<RecommendCheckListItem>? = chatClient
+            .prompt(prompt)
+            .call()
+            .entity(object : ParameterizedTypeReference<List<RecommendCheckListItem>>() {})
+
+        // 3. null 체크 및 빈 리스트 체크 - 실패 시 예외 던지기
+        return when {
+            items.isNullOrEmpty() -> {
+                logger.error("AI returned null or empty response for goal: ${request.goal}")
+                throw IllegalStateException("AI가 체크리스트를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.")
+            }
+
+            else -> {
+                logger.info("AI successfully generated ${items.size} checklist items")
+                items
+            }
+        }
+    }
+
+    /**
+     * Prompt 객체 생성
+     */
+    private fun createPromptObject(request: RecommendCheckListRequest, targetDate: LocalDate): Prompt {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")
-        val contextInfo = if (!request.context.isNullOrBlank()) {
-            "- 추가 정보: ${request.context}"
-        } else ""
-        
-        return """
+        val converter = BeanOutputConverter(object : ParameterizedTypeReference<List<RecommendCheckListItem>>() {})
+
+        // PromptTemplate 사용하여 더 구조화된 프롬프트 생성
+        val templateText = """
             당신은 목표 달성을 위한 체크리스트 생성 전문가입니다.
             주어진 정보:
-            - 날짜: ${targetDate.format(dateFormatter)}
-            - 목표: ${request.goal}
-            $contextInfo
-            
-            다음 JSON 형식으로 하루 체크리스트를 생성해주세요:
-            [
-              {
-                "task": "구체적인 작업 내용",
-                "description": "작업에 대한 상세 설명 (선택사항)",
-                "priority": "HIGH|MEDIUM|LOW",
-                "estimatedTime": "예상 소요 시간 (예: 30분, 1시간)"
-              }
-            ]
+            - 날짜: {date}
+            - 목표: {goal}
             
             규칙:
             1. 3-7개의 실행 가능한 작업으로 구성
             2. 우선순위를 명확히 설정 (HIGH: 필수, MEDIUM: 중요, LOW: 선택)
             3. 각 작업은 구체적이고 측정 가능해야 함
             4. 하루 안에 완료 가능한 현실적인 작업들로 구성
-            5. 반드시 유효한 JSON 배열 형식으로만 응답
-            6. JSON 외의 다른 텍스트는 포함하지 말 것
+            5. description은 각 작업에 대한 구체적인 설명을 포함
+            6. estimatedDuration는 각 작업에 대한 구체적인 소요시간을 포함. epoch milli를 기준으로 계산(1000 -> 1초, 6000 -> 6초)
             
-            목표에 맞는 체크리스트를 JSON 형식으로만 응답해주세요:
+            목표에 맞는 하루 체크리스트를 생성해주세요.
         """.trimIndent()
-    }
 
-    /**
-     * AI 응답 파싱
-     */
-    private fun parseAiResponse(aiResponse: String): List<RecommendCheckListItem> {    
-        return try {
-            val jsonStart = aiResponse.indexOf('[')
-            val jsonEnd = aiResponse.lastIndexOf(']') + 1
-            
-            if (jsonStart == -1 || jsonEnd <= jsonStart) {
-                throw IllegalArgumentException("No valid JSON array found in response")
-            }
-            
-            val jsonString = aiResponse.substring(jsonStart, jsonEnd)
-            logger.info("Extracted JSON: $jsonString")
-            
-            val rawItems: List<Map<String, Any>> = objectMapper.readValue(jsonString)
-            
-            rawItems.map { item ->
-                RecommendCheckListItem(
-                    task = item["task"]?.toString() ?: "작업 내용 없음",
-                    description = item["description"]?.toString(),
-                    priority = when (item["priority"]?.toString()?.uppercase()) {
-                        "HIGH" -> Priority.HIGH
-                        "LOW" -> Priority.LOW
-                        else -> Priority.MEDIUM
-                    },
-                    estimatedTime = item["estimatedTime"]?.toString()
-                )
-            }
-        } catch (e: Exception) {
-            logger.error("Failed to parse AI response", e)
-            throw IllegalArgumentException("Invalid AI response format", e)
-        }
+        logger.info("templateText: $templateText")
+
+        val promptTemplate = PromptTemplate(templateText)
+
+        // 템플릿 변수 설정
+        val templateVars = mapOf(
+            "date" to targetDate.format(dateFormatter),
+            "goal" to request.goal,
+            "outputFormat" to converter.format
+        )
+
+        logger.debug("Creating prompt with variables: {}", templateVars)
+
+        return promptTemplate.create(templateVars)
     }
 
     /**
      * 총 예상 시간 계산
      */
     private fun calculateTotalTime(items: List<RecommendCheckListItem>): String {
-        val times = items.mapNotNull { it.estimatedTime }.joinToString(", ")
+        val times = items.map { it.estimatedDuration }.joinToString(", ")
         return if (times.isNotEmpty()) "총 예상 시간: $times" else "시간 정보 없음"
-    }
-
-    /**
-     * 폴백 체크리스트 생성
-     */
-    private fun createFallbackChecklist(request: RecommendCheckListRequest, targetDate: LocalDate): RecommendCheckListResponse {    
-        val fallbackItems = listOf(
-            RecommendCheckListItem(
-                task = "목표 세부 계획 세우기",
-                description = "${request.goal}을(를) 달성하기 위한 구체적인 계획을 세워보세요",
-                priority = Priority.HIGH,
-                estimatedTime = "30분"
-            ),
-            RecommendCheckListItem(
-                task = "필요한 자료 준비하기",
-                description = "목표 달성에 필요한 자료나 도구를 준비하세요",
-                priority = Priority.MEDIUM,
-                estimatedTime = "20분"
-            ),
-            RecommendCheckListItem(
-                task = "첫 번째 단계 실행하기",
-                description = "계획한 첫 번째 단계를 실행해보세요",
-                priority = Priority.HIGH,
-                estimatedTime = "1시간"
-            )
-        )
-
-        return RecommendCheckListResponse(
-            date = targetDate,
-            goal = request.goal,
-            items = fallbackItems,
-            estimatedTotalTime = calculateTotalTime(fallbackItems)
-        )
     }
 } 
