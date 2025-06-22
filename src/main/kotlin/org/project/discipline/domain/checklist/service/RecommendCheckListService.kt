@@ -76,43 +76,82 @@ class RecommendCheckListService(
     }
 
     /**
-     * 체크리스트 생성 (통합 처리)
+     * 체크리스트 생성 (메인 진입점)
      */
     fun generateChecklist(
         request: RecommendCheckListRequest,
         currentUser: CurrentUser?
     ): RecommendCheckListResponse {
-        // 항상 현재 날짜 사용
         val targetDate = LocalDate.now()
+        
+        // 1. 엔티티 생성 및 초기화
+        val savedEntity = createAndInitializeEntity(request, currentUser, targetDate)
+        
+        // 2. AI를 통한 체크리스트 아이템 생성
+        val items = generateChecklistItemsWithAI(request, targetDate)
+        
+        // 3. 응답 객체 생성
+        val response = buildResponse(request, targetDate, items)
+        
+        // 4. 성공 처리
+        completeEntityProcessing(savedEntity, items)
+        
+        logger.info("Checklist processing completed successfully: id=${savedEntity.id}")
+        return response
+    }
 
-        // 1. 엔티티 생성 및 저장
+    /**
+     * 엔티티 생성 및 초기화
+     */
+    private fun createAndInitializeEntity(
+        request: RecommendCheckListRequest,
+        currentUser: CurrentUser?,
+        targetDate: LocalDate
+    ): RecommendCheckListEntity {
+        // 엔티티 생성
         val entity = RecommendCheckListEntity(
             userId = currentUser?.id?.toString(),
             targetDate = targetDate,
             goal = request.goal
         )
+        
+        // 엔티티 저장
         val savedEntity = checklistRepository.save(entity)
         logger.info("Checklist created: id=${savedEntity.id}, userId=${currentUser?.id}, goal=${request.goal}")
-
-        // 2. 처리 시작
+        
+        // 처리 시작 상태로 변경
         savedEntity.start()
         checklistRepository.save(savedEntity)
+        
+        return savedEntity
+    }
 
-        val items = generateChecklistItemsWithAI(request, targetDate)
-        val response = RecommendCheckListResponse(
+    /**
+     * 응답 객체 생성
+     */
+    private fun buildResponse(
+        request: RecommendCheckListRequest,
+        targetDate: LocalDate,
+        items: List<RecommendCheckListItem>
+    ): RecommendCheckListResponse {
+        return RecommendCheckListResponse(
             date = targetDate,
             goal = request.goal,
             items = items,
             estimatedTotalTime = calculateTotalTime(items)
         )
+    }
 
-        // 4. 성공 처리
+    /**
+     * 엔티티 처리 완료 처리
+     */
+    private fun completeEntityProcessing(
+        entity: RecommendCheckListEntity,
+        items: List<RecommendCheckListItem>
+    ) {
         val checklistJson = objectMapper.writeValueAsString(items)
-        savedEntity.complete(checklistJson)
-        checklistRepository.save(savedEntity)
-
-        logger.info("Checklist processing completed successfully: id=${savedEntity.id}")
-        return response
+        entity.complete(checklistJson)
+        checklistRepository.save(entity)
     }
 
     /**
